@@ -1,0 +1,13 @@
+---
+- name: 'Instala os pacotes no sistema operacional'
+  apt:
+    name: "{{ item }}"
+    state: latest
+  become: yes
+  loop:
+    - php7.2
+    - apache2
+    - libapache2-mod-php7.2
+    - php7.2-gd
+    - libssh2-1
+    - php7.2-mysql

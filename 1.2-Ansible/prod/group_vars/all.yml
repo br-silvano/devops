@@ -1,0 +1,8 @@
+---
+ansible_user: 'vagrant'
+ansible_python_interpreter: '/usr/bin/python3'
+ansible_ssh_common_args: '-o StrictHostKeyChecking=no'
+
+wp_db_name: 'wordpress_db'
+wp_db_username: 'wordpress_user'
+wp_db_password: '12345'

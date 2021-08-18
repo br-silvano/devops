@@ -1,0 +1,5 @@
+---
+- name: 'Atualiza o cache do repositório de pacote apt'
+  apt:
+    update_cache: yes
+  become: yes
