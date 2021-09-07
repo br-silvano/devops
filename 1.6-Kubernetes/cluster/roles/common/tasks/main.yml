@@ -1,0 +1,127 @@
+---
+- name: Update and upgrade APT packages
+  apt:
+    update_cache: yes
+    upgrade: 'yes'
+  become: yes
+
+- name: Reboot a machine
+  reboot:
+    reboot_timeout: 3600
+  become: yes
+
+- name: Install APT Transport HTTPS
+  apt:
+    name: apt-transport-https
+    state: latest
+  become: yes
+
+- name: Add Kubernetes apt-key
+  apt_key:
+    url: https://packages.cloud.google.com/apt/doc/apt-key.gpg
+    state: present
+  become: yes
+
+- name: Add Kubernetes APT repository
+  apt_repository:
+    repo: deb http://apt.kubernetes.io/ kubernetes-xenial main
+    state: present
+    filename: 'kubernetes'
+  become: yes
+
+- name: Add Docker apt-key
+  apt_key:
+    url: https://download.docker.com/linux/ubuntu/gpg
+    state: present
+  become: yes
+
+- name: Add Docker APT repository
+  apt_repository:
+    repo: deb [arch=amd64] https://download.docker.com/linux/ubuntu xenial stable
+    state: present
+  become: yes
+
+- name: Install required packages
+  apt:
+    name: "{{ item }}"
+    state: latest
+  loop:
+    - software-properties-common
+    - ca-certificates
+    - kubelet
+    - kubeadm
+    - kubectl
+    - containerd.io
+    - docker-ce
+    - docker-ce-cli
+  become: yes
+
+- name: Remove swapfile from /etc/fstab
+  mount:
+    name: "{{ item }}"
+    fstype: swap
+    state: absent
+  with_items:
+    - swap
+    - none
+  become: yes
+
+- name: Disable swap
+  command: swapoff -a
+  become: yes
+
+- name: Configure sysctl
+  command: modprobe overlay
+  become: yes
+
+- name: Configure sysctl
+  command: modprobe br_netfilter
+  become: yes
+
+- name: onfigure sysctl
+  copy:
+    content: |
+      net.bridge.bridge-nf-call-ip6tables = 1
+      net.bridge.bridge-nf-call-iptables = 1
+      net.ipv4.ip_forward = 1
+    dest: /etc/sysctl.d/kubernetes.conf
+  become: yes
+
+- name: Create required directories
+  file:
+    path: /etc/systemd/system/docker.service.d
+    state: directory
+  become: yes
+
+- name: Configure sysctl
+  copy:
+    content: |
+      {
+        "exec-opts": ["native.cgroupdriver=systemd"],
+        "log-driver": "json-file",
+        "log-opts": {
+          "max-size": "100m"
+        },
+        "storage-driver": "overlay2"
+      }
+    dest: /etc/docker/daemon.json
+  become: yes
+
+- name: Add vagrant user to docker group
+  user:
+    name: vagrant
+    group: docker
+  become: yes
+  
+- name: Restart docker service
+  service:
+    name: docker
+    daemon_reload: yes
+    state: restarted
+  become: yes
+
+- name: Enable docker service
+  service:
+    name: docker
+    enabled: yes
+  become: yes

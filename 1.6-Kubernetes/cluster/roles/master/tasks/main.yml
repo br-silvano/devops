@@ -1,0 +1,58 @@
+---
+- name: Enable kubelet service
+  service:
+    name: kubelet
+    enabled: yes
+  become: yes
+
+- name: Pull container images
+  command: kubeadm config images pull
+  become: yes
+
+- name: Generate echo command
+  command: "echo {{ host_ip }} {{ dns_hostname }}"
+  register: echo_command
+
+- name: Copy echo command to /vagrant/configs
+  copy:
+    content: "{{ echo_command.stdout_lines[0] }}"
+    dest: "/vagrant/configs/hosts"
+
+- name: Set cluster endpoint DNS name or add record to /etc/hosts file
+  lineinfile:
+    dest: /etc/hosts
+    line: "{{ echo_command.stdout_lines[0] }}"
+    state: present
+  become: yes
+
+- name: Create cluster
+  command: "kubeadm init --pod-network-cidr={{ pod_network_cidr }} --apiserver-advertise-address={{ host_ip }} --control-plane-endpoint={{ dns_hostname }}"
+  become: yes
+
+- name: Create required directory for vagrant user
+  file:
+    path: /home/vagrant/.kube
+    state: directory
+  become: yes
+
+- name: Setup kubeconfig for vagrant user
+  copy:
+    src: /etc/kubernetes/admin.conf
+    dest: /home/vagrant/.kube/config
+    owner: vagrant
+    group: vagrant
+    mode: 0644
+    remote_src: yes
+  become: yes
+
+- name: Install network plugin on Master
+  command: kubectl apply -f https://docs.projectcalico.org/manifests/calico.yaml
+
+- name: Generate join command
+  command: kubeadm token create --print-join-command
+  register: join_command
+
+- name: Copy join command to /vagrant/configs
+  copy:
+    content: "{{ join_command.stdout_lines[0] }}"
+    dest: "/vagrant/configs/join-command"

@@ -1,0 +1,25 @@
+---
+- name: Generate cat command
+  command: "cat /vagrant/configs/hosts"
+  register: cat_command
+
+- name: If endpoint address is not in DNS, add record to /etc/hosts
+  lineinfile:
+    dest: /etc/hosts
+    line: "{{ item }}"
+    state: present
+  with_items: "{{ cat_command.stdout_lines }}"
+  become: yes
+
+- name: Copy the join command to server location
+  copy:
+    src: "/vagrant/configs/join-command"
+    dest: "/tmp/join-command.sh"
+    owner: vagrant
+    group: vagrant
+    mode: '0700'
+    remote_src: true
+
+- name: Join the node to cluster
+  command: sh /tmp/join-command.sh
+  become: yes
