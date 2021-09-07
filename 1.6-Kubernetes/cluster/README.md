@@ -85,7 +85,7 @@ nginx         nginx-6799fc88d8-zc9kb                     1/1     Running   0    
 $ curl k8s-m-1:31307
 ```
 
-## Container runtime sockets:
+## Possible container runtime sockets:
 ### Runtime: Path to Unix domain socket
 - Docker:	/var/run/docker.sock
 - containerd:	/run/containerd/containerd.sock
