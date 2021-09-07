@@ -87,6 +87,6 @@ $ curl k8s-m-1:31307
 
 ## Container runtime sockets:
 ### Runtime: Path to Unix domain socket
-- > Docker:	/var/run/docker.sock
-- > containerd:	/run/containerd/containerd.sock
-- > CRI-O:	/var/run/crio/crio.sock
+- Docker:	/var/run/docker.sock
+- containerd:	/run/containerd/containerd.sock
+- CRI-O:	/var/run/crio/crio.sock
