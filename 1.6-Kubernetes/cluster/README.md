@@ -1,92 +1,74 @@
 # Cluster
 
-## Generate a new SSH key
+Load Balancer (metallb): 192.168.0.20
+
 ```bash
-$ mkdir configs
 $ ssh-keygen -t rsa
-```
-
-## Login to the server to be used as master and make sure that the br_netfilter module is loaded
-```bash
 $ lsmod | grep br_netfilter
-```
-
-## Check cluster status
-```bash
 $ kubectl cluster-info
-```
-
-## Confirm that all of the pods are running
-```bash
 $ watch kubectl get pods --all-namespaces
-NAMESPACE     NAME                                       READY   STATUS    RESTARTS   AGE
-kube-system   calico-kube-controllers-58497c65d5-rmm72   1/1     Running   0          5m27s
-kube-system   calico-node-72hgg                          1/1     Running   0          5m27s
-kube-system   calico-node-m4nsr                          1/1     Running   0          2m46s
-kube-system   coredns-78fcd69978-j5nfd                   1/1     Running   0          5m27s
-kube-system   coredns-78fcd69978-wcmwz                   1/1     Running   0          5m27s
-kube-system   etcd-k8s-m-1                               1/1     Running   0          5m44s
-kube-system   kube-apiserver-k8s-m-1                     1/1     Running   0          5m41s
-kube-system   kube-controller-manager-k8s-m-1            1/1     Running   0          5m41s
-kube-system   kube-proxy-l6s8c                           1/1     Running   0          2m46s
-kube-system   kube-proxy-mz8xr                           1/1     Running   0          5m27s
-kube-system   kube-scheduler-k8s-m-1                     1/1     Running   0          5m41s
+$ watch kubectl get nodes -o wide
+$ kubectl api-resources -o wide
 ```
 
-## Confirm master node is ready
+## Local machine tests
 ```bash
-$ kubectl get nodes -o wide
-NAME      STATUS   ROLES                  AGE     VERSION   INTERNAL-IP   EXTERNAL-IP   OS-IMAGE             KERNEL-VERSION       CONTAINER-RUNTIME
-k8s-m-1   Ready    control-plane,master   4m36s   v1.22.1   10.0.2.15     <none>        Ubuntu 18.04.5 LTS   4.15.0-154-generic   docker://20.10.7
-k8s-w-1   Ready    <none>                 96s     v1.22.1   10.0.2.15     <none>        Ubuntu 18.04.5 LTS   4.15.0-154-generic   docker://20.10.7
+cat /etc/hosts
+192.168.0.20    whoami.worksit.com.br
+192.168.0.20    dash.worksit.com.br
+192.168.0.20    grafana.worksit.com.br
+192.168.0.20    prometheus.worksit.com.br
+192.168.0.20    alertmanager.worksit.com.br
 ```
 
-## Docker login
+## Dashboard
 ```bash
-$ docker login
+$ wget https://raw.githubusercontent.com/kubernetes/dashboard/master/aio/deploy/recommended.yaml
+$ kubectl apply -f /vagrant/services/kube-dash/deploy.yml
+$ kubectl apply -f /vagrant/services/kube-dash/dash.yml
+$ kubectl get services -n kubernetes-dashboard
+$ kubectl get deployments -n kubernetes-dashboard
+$ kubectl get pods -n kubernetes-dashboard
+$ kubectl describe ingress -n kubernetes-dashboard
+$ SA_NAME="devops-admin"
+$ kubectl -n kubernetes-dashboard describe secret $(kubectl -n kubernetes-dashboard get secret | grep ${SA_NAME} | awk '{print $1}')
 ```
 
-## Docker registry
+## Demo
 ```bash
-$ kubectl create secret generic registry-credential \
-    --from-file=.dockerconfigjson=/home/vagrant/.docker/config.json \
-    --type=kubernetes.io/dockerconfigjson
+$ kubectl apply -f /vagrant/services/whoami/deploy.yml
+$ kubectl get services -n whoami
+$ kubectl get deployments -n whoami
+$ kubectl get pods -n whoami
+$ kubectl describe ingress -n whoami
 ```
 
-## Test
+## Monitoring
+
 ```bash
-$ kubectl create namespace nginx
-$ kubectl create deployment nginx --image=nginx --namespace=nginx
-$ kubectl get deployments --namespace=nginx
-$ kubectl describe deployment nginx --namespace=nginx
-$ kubectl create service nodeport nginx --tcp=80:80 --namespace=nginx
-$ kubectl get svc --namespace=nginx
-$ kubectl scale deployments nginx --replicas 4 --namespace=nginx
-$ kubectl get deployments nginx --namespace=nginx
-NAME    READY   UP-TO-DATE   AVAILABLE   AGE
-nginx   4/4     4            4           4m34s
-$ kubectl get pods --all-namespaces
-NAMESPACE     NAME                                       READY   STATUS    RESTARTS   AGE
-kube-system   calico-kube-controllers-58497c65d5-rmm72   1/1     Running   0          12m
-kube-system   calico-node-72hgg                          1/1     Running   0          12m
-kube-system   calico-node-m4nsr                          1/1     Running   0          9m35s
-kube-system   coredns-78fcd69978-j5nfd                   1/1     Running   0          12m
-kube-system   coredns-78fcd69978-wcmwz                   1/1     Running   0          12m
-kube-system   etcd-k8s-m-1                               1/1     Running   0          12m
-kube-system   kube-apiserver-k8s-m-1                     1/1     Running   0          12m
-kube-system   kube-controller-manager-k8s-m-1            1/1     Running   0          12m
-kube-system   kube-proxy-l6s8c                           1/1     Running   0          9m35s
-kube-system   kube-proxy-mz8xr                           1/1     Running   0          12m
-kube-system   kube-scheduler-k8s-m-1                     1/1     Running   0          12m
-nginx         nginx-6799fc88d8-7jj8d                     1/1     Running   0          73s
-nginx         nginx-6799fc88d8-q6msm                     1/1     Running   0          5m14s
-nginx         nginx-6799fc88d8-x8qlp                     1/1     Running   0          73s
-nginx         nginx-6799fc88d8-zc9kb                     1/1     Running   0          73s
-$ curl k8s-m-1:31307
+$ git clone https://github.com/prometheus-operator/kube-prometheus.git
+$ kubectl create -f /vagrant/services/kube-prometheus/manifests/setup
+$ kubectl get ns monitoring
+$ kubectl get pods -n monitoring
+$ kubectl create -f /vagrant/services/kube-prometheus/manifests
 ```
 
-## Possible container runtime sockets:
-### Runtime: Path to Unix domain socket
-- Docker:	/var/run/docker.sock
-- containerd:	/run/containerd/containerd.sock
-- CRI-O:	/var/run/crio/crio.sock
+### Grafana Dashboard
+Username: admin
+Password: admin
+```bash
+$ kubectl get svc -n monitoring -o wide
+$ kubectl apply -f /vagrant/services/kube-prometheus/grafana.yml
+```
+
+### Prometheus Dashboard
+```bash
+$ kubectl get svc -n monitoring -o wide
+$ kubectl apply -f /vagrant/services/kube-prometheus/prometheus.yml
+```
+
+### Alert Manager Dashboard
+```bash
+$ kubectl get svc -n monitoring -o wide
+$ kubectl apply -f /vagrant/services/kube-prometheus/alertmanager.yml
+```

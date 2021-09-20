@@ -1,8 +1,8 @@
 ---
-- hosts: k8s-m-*
+- hosts: k8s-master
   roles:
     - master
 
-- hosts: k8s-w-*
+- hosts: k8s-worker-*
   roles:
     - worker

@@ -1,3 +1,5 @@
 .vagrant
-configs
+configs/*
+!configs/hosts
 *.log
+.env

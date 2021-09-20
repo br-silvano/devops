@@ -22,7 +22,7 @@ do
       ;;
     3)
       echo "Apagando, confirme e aguarde a conclusão..."
-      vagrant destroy
+      vagrant destroy -f
       break
       ;;
     0)
