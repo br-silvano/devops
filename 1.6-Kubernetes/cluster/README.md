@@ -5,6 +5,48 @@ Load Balancer (metallb): 192.168.0.20
 ```bash
 $ ssh-keygen -t rsa
 $ lsmod | grep br_netfilter
+```
+
+## Images
+
+### List Images
+```bash
+$ sudo kubeadm config images list
+```
+
+### Pull images
+```bash
+$ for image in k8s.gcr.io/kube-apiserver:v1.22.2 \
+k8s.gcr.io/kube-controller-manager:v1.22.2 \
+k8s.gcr.io/kube-scheduler:v1.22.2 \
+k8s.gcr.io/kube-proxy:v1.22.2 \
+k8s.gcr.io/pause:3.5 \
+k8s.gcr.io/etcd:3.5.0-0 \
+k8s.gcr.io/coredns/coredns:v1.8.4; do
+sudo docker pull $image;
+done
+```
+
+### Save images
+```bash
+$ mkdir /vagrant/k8s-images
+$ docker save k8s.gcr.io/kube-apiserver:v1.22.2 > /vagrant/k8s-images/kube-apiserver.tar
+$ docker save k8s.gcr.io/kube-controller-manager:v1.22.2 > /vagrant/k8s-images/kube-controller-manager.tar
+$ docker save k8s.gcr.io/kube-scheduler:v1.22.2 > /vagrant/k8s-images/kube-scheduler.tar
+$ docker save k8s.gcr.io/kube-proxy:v1.22.2 > /vagrant/k8s-images/kube-proxy.tar
+$ docker save k8s.gcr.io/pause:3.5 > /vagrant/k8s-images/pause.tar
+$ docker save k8s.gcr.io/etcd:3.5.0-0 > /vagrant/k8s-images/etcd.tar
+$ docker save k8s.gcr.io/coredns/coredns:v1.8.4 > /vagrant/k8s-images/coredns.tar
+```
+
+### Load images
+```bash
+$ cd /vagrant/k8s-images
+$ ls /vagrant/k8s-images/* | while read image; do docker load < $image; done
+```
+
+## Node master tests
+```bash
 $ kubectl cluster-info
 $ watch kubectl get pods --all-namespaces
 $ watch kubectl get nodes -o wide

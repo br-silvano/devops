@@ -12,7 +12,7 @@ do
   case $INPUT_STRING in
     1)
       echo "Iniciando, aguarde a conclusão..."
-      vagrant up
+      vagrant box update && vagrant up
       break
       ;;
     2)

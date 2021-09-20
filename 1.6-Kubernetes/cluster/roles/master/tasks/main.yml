@@ -1,13 +1,32 @@
 ---
+- name: Restart kubelet service
+  service:
+    name: kubelet
+    daemon_reload: yes
+    state: restarted
+  become: yes
+
 - name: Enable kubelet service
   service:
     name: kubelet
     enabled: yes
   become: yes
 
+- name: Sleep for 30 seconds and continue with play
+  wait_for:
+    timeout: 30
+
 - name: Pull container images
-  command: kubeadm config images pull
+  shell: 'ls /vagrant/k8s-images/* | while read image; do docker load < $image; done'
   become: yes
+
+# - name: Pull container images
+#   command: kubeadm config images pull
+#   become: yes
+
+- name: Sleep for 60 seconds and continue with play
+  wait_for:
+    timeout: 60
 
 - name: Create cluster
   command: "kubeadm init --pod-network-cidr={{ pod_network_cidr }} --apiserver-advertise-address={{ host_ip }}"
@@ -41,27 +60,28 @@
     content: "{{ join_command.stdout_lines[0] }}"
     dest: "/vagrant/configs/join-command"
 
-- name: Apply namespace metallb
-  command: kubectl apply -f /vagrant/roles/master/files/metallb-system/namespace.yml
+- name: Configure addresses metallb-system
+  template:
+    src: '/vagrant/roles/master/templates/metallb-system-config.yml.j2'
+    dest: '/vagrant/roles/master/files/metallb-system/config.yml'
 
-- name: Create secret metallb
-  shell: kubectl create secret generic -n metallb-system memberlist --from-literal=secretkey="$(openssl rand -base64 128)"
+- name: Apply metallb-system
+  command: "{{ item }}"
+  with_items:
+    - kubectl apply -f /vagrant/roles/master/files/metallb-system/namespace.yml
+    - kubectl create secret generic -n metallb-system memberlist --from-literal=secretkey="$(openssl rand -base64 128)"
+    - kubectl apply -f /vagrant/roles/master/files/metallb-system/deploy.yml
+    - kubectl apply -f /vagrant/roles/master/files/metallb-system/config.yml
 
-- name: Apply load balancer metallb
-  command: kubectl apply -f /vagrant/roles/master/files/metallb-system/deploy.yml
-
-- name: Apply config metallb
-  command: kubectl apply -f /vagrant/roles/master/files/metallb-system/config.yml
-
-- name: Configure strictARP metallb
+- name: Configure strictARP metallb-system
   shell: 'kubectl get configmap kube-proxy -n kube-system -o yaml | sed -e "s/strictARP: false/strictARP: true/" | kubectl apply -f - -n kube-system'
 
-- name: Apply deploy metrics-server
+- name: Sleep for 30 seconds and continue with play
+  wait_for:
+    timeout: 30
+
+- name: Apply metrics-server
   command: kubectl apply -f /vagrant/roles/master/files/metrics-server/deploy.yml
 
-- name: Apply deploy ingress-nginx
+- name: Apply ingress-nginx
   command: kubectl apply -f /vagrant/roles/master/files/ingress-nginx/deploy.yml
-
-# - name: Sleep for 60 seconds and continue with play
-#   wait_for:
-#     timeout: 60

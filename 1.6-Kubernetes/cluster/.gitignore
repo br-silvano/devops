@@ -1,5 +1,7 @@
 .vagrant
 configs/*
 !configs/hosts
+k8s-images
 *.log
 .env
+hosts

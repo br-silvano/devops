@@ -2,7 +2,6 @@
 - hosts: k8s-master
   roles:
     - master
-
 - hosts: k8s-worker-*
   roles:
     - worker
