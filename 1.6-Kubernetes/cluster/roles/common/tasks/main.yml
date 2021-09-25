@@ -45,7 +45,6 @@
     - kubelet
     - kubeadm
     - kubectl
-    - containerd.io
     - docker-ce
     - docker-ce-cli
   become: yes

@@ -9,5 +9,14 @@
 - name: Apply kube-dash
   command: kubectl apply -f /vagrant/roles/finished/files/kube-dash/kube-dash.yml
 
+- name: Apply kube-prometheus
+  command: "{{ item }}"
+  with_items:
+    - kubectl apply -f /vagrant/roles/finished/files/kube-prometheus/manifests/setup
+    - kubectl apply -f /vagrant/roles/finished/files/kube-prometheus/manifests
+    - kubectl apply -f /vagrant/roles/finished/files/kube-prometheus/grafana.yml
+    - kubectl apply -f /vagrant/roles/finished/files/kube-prometheus/prometheus.yml
+    - kubectl apply -f /vagrant/roles/finished/files/kube-prometheus/alertmanager.yml
+
 - name: Apply whoami
   command: kubectl apply -f /vagrant/roles/finished/files/whoami/whoami.yml
