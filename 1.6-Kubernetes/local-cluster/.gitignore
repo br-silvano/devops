@@ -1,0 +1,8 @@
+.vagrant
+configs/*
+k8s-images
+*.log
+.env
+hosts
+
+!configs/hosts

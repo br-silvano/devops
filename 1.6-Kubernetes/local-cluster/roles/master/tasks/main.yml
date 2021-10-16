@@ -1,0 +1,63 @@
+---
+- name: Pull container images
+  shell: 'ls /vagrant/k8s-images/* | while read image; do docker load < $image; done'
+  become: yes
+
+# - name: Pull container images
+#   command: kubeadm config images pull
+#   become: yes
+
+- name: Create cluster
+  command: "kubeadm init --pod-network-cidr={{ pod_network_cidr }} --apiserver-advertise-address={{ ansible_enp0s8.ipv4.address }}"
+  become: yes
+
+- name: Create required directory for vagrant user
+  file:
+    path: /home/vagrant/.kube
+    state: directory
+  become: yes
+
+- name: Setup kubeconfig for vagrant user
+  copy:
+    src: /etc/kubernetes/admin.conf
+    dest: /home/vagrant/.kube/config
+    owner: vagrant
+    group: vagrant
+    mode: 0644
+    remote_src: yes
+  become: yes
+
+- name: Install network plugin on Master
+  command: kubectl apply -f /vagrant/roles/master/files/kube-flannel/deploy.yml
+
+- name: Generate join command
+  command: kubeadm token create --print-join-command
+  register: join_command
+
+- name: Copy join command to /vagrant/configs
+  copy:
+    content: "{{ join_command.stdout_lines[0] }}"
+    dest: "/vagrant/configs/join-command"
+
+- name: Configure addresses metallb-system
+  template:
+    src: '/vagrant/roles/master/templates/metallb-system-config.yml.j2'
+    dest: '/vagrant/roles/master/files/metallb-system/config.yml'
+
+- name: Apply metallb-system
+  command: "{{ item }}"
+  with_items:
+    - kubectl apply -f /vagrant/roles/master/files/metallb-system/namespace.yml
+    - kubectl create secret generic -n metallb-system memberlist --from-literal=secretkey="$(openssl rand -base64 128)"
+    - kubectl apply -f /vagrant/roles/master/files/metallb-system/deploy.yml
+    - kubectl apply -f /vagrant/roles/master/files/metallb-system/config.yml
+
+- name: Configure strictARP metallb-system
+  shell: 'kubectl get configmap kube-proxy -n kube-system -o yaml | sed -e "s/strictARP: false/strictARP: true/" | kubectl apply -f - -n kube-system'
+
+
+- name: Apply metrics-server
+  command: kubectl apply -f /vagrant/roles/master/files/metrics-server/deploy.yml
+
+- name: Apply ingress-nginx
+  command: kubectl apply -f /vagrant/roles/master/files/ingress-nginx/deploy.yml

@@ -1,0 +1,20 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: busybox-1
+  labels:
+    app: busybox-1
+spec:
+  containers:
+  - image: busybox
+    command:
+      - sleep
+      - "3600"
+    imagePullPolicy: IfNotPresent
+    name: busybox
+  dnsPolicy: "None"
+  dnsConfig:
+    nameservers:
+      - 8.8.8.8
+      - 8.8.4.4
+  restartPolicy: Always
